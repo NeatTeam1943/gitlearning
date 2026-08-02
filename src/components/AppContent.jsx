@@ -7,9 +7,9 @@ import NotFound from './NotFound';
 function AppContent() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/Learning" replace />} />
-      <Route path="/Learning" element={<GitLearningPlatform />} />
-      <Route path="/login" element={<LoginRoute />} />
+      <Route path="/" element={<Navigate to="/gitlearning" replace />} />
+      <Route path="/gitlearning" element={<GitLearningPlatform />} />
+      <Route path="/gitlearning/login" element={<LoginRoute />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

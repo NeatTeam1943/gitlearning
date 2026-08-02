@@ -9,6 +9,7 @@ import { db } from '../config/firebase';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import githubLogo from '../assets/github-logo.svg';
 import './GitLearningPlatform.css';
+import confetti from 'canvas-confetti';
 
 const GitLearningPlatform = () => {
   const navigate = useNavigate();
@@ -18,7 +19,6 @@ const GitLearningPlatform = () => {
   const [userInput, setUserInput] = useState('');
   const [terminalOutput, setTerminalOutput] = useState([]);
   const [currentStep, setCurrentStep] = useState(0);
-  const [showHint, setShowHint] = useState(false);
   const [activeTab, setActiveTab] = useState('terminal'); // 'terminal' or 'docs'
   const [showTest, setShowTest] = useState(false);
   const [testAnswers, setTestAnswers] = useState({});
@@ -82,12 +82,12 @@ const GitLearningPlatform = () => {
     const loadUserProgress = async () => {
       isLoadingProgressRef.current = true;
       setLoadingProgress(true);
-      
+
       if (currentUser) {
         try {
           const userDocRef = doc(db, 'users', currentUser.uid);
           const userDoc = await getDoc(userDocRef);
-          
+
           if (userDoc.exists()) {
             const data = userDoc.data();
             if (data.completedStages && Array.isArray(data.completedStages)) {
@@ -182,12 +182,12 @@ const GitLearningPlatform = () => {
     const handleKonamiKeyDown = (e) => {
       // Allow Konami Code keys even when input is focused (arrow keys, B, A, Space)
       const isKonamiKey = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyB', 'KeyA'].includes(e.code);
-      
+
       // Only ignore if user is actively typing text AND it's not a Konami Code key
-      const isTypingText = (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') && 
+      const isTypingText = (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') &&
                            e.target === document.activeElement &&
                            !isKonamiKey;
-      
+
       if (isTypingText) {
         // Reset sequence if user is typing text (but not Konami keys)
         setKonamiSequence([]);
@@ -199,31 +199,31 @@ const GitLearningPlatform = () => {
       }
 
       const key = e.code;
-      
+
       // Clear existing timeout
       if (konamiTimeoutRef.current) {
         clearTimeout(konamiTimeoutRef.current);
         konamiTimeoutRef.current = null;
       }
-      
+
       setKonamiSequence(prev => {
         const newSequence = [...prev, key];
-        
+
         // Keep only the last 11 keys (sequence is now 11 keys long)
         const trimmedSequence = newSequence.slice(-11);
-        
+
         // Debug: log the sequence (remove in production)
         if (trimmedSequence.length > 0) {
           console.log('Konami sequence:', trimmedSequence);
         }
-        
+
         // Check if the sequence matches Konami Code
         if (trimmedSequence.length === konamiCode.length) {
           const matches = trimmedSequence.every((k, i) => k === konamiCode[i]);
-          
+
           if (matches && !konamiActivated) {
             console.log('Konami Code matched! Unlocking all stages...');
-            
+
             // Unlock all stages
             const allStages = [
               ...stages.beginner,
@@ -235,29 +235,29 @@ const GitLearningPlatform = () => {
             const allStageIds = allStages.map(s => s.id);
             setCompletedStages(new Set(allStageIds));
             setKonamiActivated(true);
-            
+
             // Clear timeout
             if (konamiTimeoutRef.current) {
               clearTimeout(konamiTimeoutRef.current);
               konamiTimeoutRef.current = null;
             }
-            
+
             // Show notification
             setTimeout(() => {
               alert('🎮 Konami Code Activated! All stages unlocked! 🎉');
             }, 100);
-            
+
             // Reset sequence after activation
             return [];
           }
         }
-        
+
         // Set timeout to reset sequence if no key pressed for 5 seconds (increased from 3)
         konamiTimeoutRef.current = setTimeout(() => {
           setKonamiSequence([]);
           konamiTimeoutRef.current = null;
         }, 5000);
-        
+
         return trimmedSequence;
       });
     };
@@ -277,8 +277,8 @@ const GitLearningPlatform = () => {
     if (e.key === 'ArrowUp') {
       e.preventDefault();
       if (commandHistory.length > 0) {
-        const newIndex = historyIndex === -1 
-          ? commandHistory.length - 1 
+        const newIndex = historyIndex === -1
+          ? commandHistory.length - 1
           : Math.max(0, historyIndex - 1);
         setHistoryIndex(newIndex);
         setUserInput(commandHistory[newIndex]);
@@ -317,14 +317,14 @@ const GitLearningPlatform = () => {
     const rebaseTodoState = rebaseTodoList ? { commits: rebaseTodoList, text: rebaseTodoText } : null;
     const conflictResolvedText = conflictEditor ? conflictEditor.resolved : null;
     const { newState, output: cmdOutput, clear, rebaseTodo, conflictEditor: newConflictEditor } = executeGitCommand(userInput, gitState, rebaseTodoState, conflictResolvedText);
-    
+
     if (clear) {
       setTerminalOutput([]);
     } else {
       output.push(...cmdOutput);
       setTerminalOutput(output);
     }
-    
+
     // Handle rebase todo
     if (rebaseTodo) {
       if (rebaseTodo.action === 'open') {
@@ -335,7 +335,7 @@ const GitLearningPlatform = () => {
         setRebaseTodoText('');
       }
     }
-    
+
     // Handle conflict editor
     if (newConflictEditor) {
       setConflictEditor(newConflictEditor);
@@ -348,13 +348,13 @@ const GitLearningPlatform = () => {
       };
       setConflictEditor(null);
     }
-    
+
     setGitState(newState);
 
     // Validate step
     const allStages = [...stages.beginner, ...stages.intermediate, ...stages.advanced, ...stages.remote, ...stages.expert];
     const stageData = allStages.find(s => s.id === currentStage);
-    
+
     // Validate step - call validator with all params (validators can ignore extra params)
     let isValid = false;
     if (stageData && stageData.steps && stageData.steps[currentStep]) {
@@ -370,21 +370,18 @@ const GitLearningPlatform = () => {
         }
       }
     }
-    
+
     if (isValid) {
-      setShowHint(false);
       setTimeout(() => {
         setTerminalOutput(prev => [...prev, { type: 'success', text: '✓ Correct!' }]);
-        
+
         if (currentStep < stageData.steps.length - 1) {
-          setTimeout(() => {
             const nextStep = currentStep + 1;
             setCurrentStep(nextStep);
             // Apply next step's setup if exists
             if (stageData.steps[nextStep]?.setup) {
               setGitState(prev => stageData.steps[nextStep].setup(prev));
             }
-          }, 800);
         } else {
           // All steps completed - show test if available
           if (stageData.test && stageData.test.questions) {
@@ -412,9 +409,9 @@ const GitLearningPlatform = () => {
   const startStage = (stageId) => {
     const allStages = [...stages.beginner, ...stages.intermediate, ...stages.advanced, ...stages.remote, ...stages.expert];
     const stageData = allStages.find(s => s.id === stageId);
-    
+
     let initialState = { ...initialGitState, initialized: stageId !== 'init' };
-    
+
     if (stageData?.setup) {
       initialState = stageData.setup(initialState);
     }
@@ -422,7 +419,6 @@ const GitLearningPlatform = () => {
     setCurrentStage(stageId);
     setCurrentStep(0);
     setGitState(initialState);
-    setShowHint(false);
     setRebaseTodoList(null);
     setRebaseTodoText('');
     setActiveTab('terminal');
@@ -431,7 +427,7 @@ const GitLearningPlatform = () => {
     setTestSubmitted(false);
     setTerminalOutput([
       { type: 'system', text: '═══════════════════════════════════════════════' },
-      { type: 'system', text: '  Git Terminal Simulator' },
+      { type: 'system', text: '  Git Terminal' },
       { type: 'system', text: '═══════════════════════════════════════════════' },
       { type: 'output', text: 'Type commands to complete each step.' },
       { type: 'output', text: 'Use "help" or "git --help" for command list.\n' }
@@ -443,7 +439,6 @@ const GitLearningPlatform = () => {
     setTerminalOutput([]);
     setCurrentStep(0);
     setUserInput('');
-    setShowHint(false);
   };
 
   const levelConfig = {
@@ -454,33 +449,53 @@ const GitLearningPlatform = () => {
     expert: { icon: Trophy, color: 'rose', label: 'Expert' }
   };
 
+  const isLevelUnlocked = (level) => {
+    // GIL account type: all stages are always unlocked
+    // For other levels, check if all previous level stages are completed
+    const levelOrder = ['beginner', 'intermediate', 'advanced', 'remote', 'expert'];
+    const currentLevelIndex = levelOrder.indexOf(level);
+
+    // Check all previous levels
+    for (let i = 0; i < currentLevelIndex; i++) {
+      const previousLevel = levelOrder[i];
+      const previousLevelStages = stages[previousLevel];
+      const allPreviousCompleted = previousLevelStages.every(s => completedStages.has(s.id));
+
+      if (!allPreviousCompleted) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   // Check if a stage is unlocked based on prerequisites
   const isStageUnlocked = (stageId, level) => {
     // GIL account type: all stages are always unlocked
     if (accountType === 'GIL') {
       return true;
     }
-    
+
     // Beginner level: all stages unlocked
     if (level === 'beginner') {
       return true;
     }
-    
+
     // For other levels, check if all previous level stages are completed
     const levelOrder = ['beginner', 'intermediate', 'advanced', 'remote', 'expert'];
     const currentLevelIndex = levelOrder.indexOf(level);
-    
+
     // Check all previous levels
     for (let i = 0; i < currentLevelIndex; i++) {
       const previousLevel = levelOrder[i];
       const previousLevelStages = stages[previousLevel];
       const allPreviousCompleted = previousLevelStages.every(s => completedStages.has(s.id));
-      
+
       if (!allPreviousCompleted) {
         return false;
       }
     }
-    
+
     return true;
   };
 
@@ -514,7 +529,7 @@ const GitLearningPlatform = () => {
                 </div>
               ) : (
                 <button
-                  onClick={() => navigate('/login')}
+                  onClick={() => navigate('/gitlearning/login')}
                   className="git-platform-login-button"
                   title="Login"
                 >
@@ -527,9 +542,12 @@ const GitLearningPlatform = () => {
               Master Git through hands-on practice. From basics to advanced workflows with remote operations.
             </p>
             <div className="git-platform-menu-stats">
-              <span className="git-platform-menu-stats-item"><CheckCircle className="git-platform-icon-small" /> {completedStages.size} completed</span>
-              <span>•</span>
-              <span>{stages ? Object.values(stages).flat().length : 0} total stages</span>
+              <div className="git-platform-stat-badge">
+                <CheckCircle className="git-platform-icon-small" />
+                <span>
+      {completedStages.size} out of {stages ? Object.values(stages).flat().length : 0} stages completed
+    </span>
+              </div>
             </div>
           </div>
 
@@ -538,24 +556,41 @@ const GitLearningPlatform = () => {
               const config = levelConfig[level];
               const Icon = config.icon;
               const completedInLevel = stageList.filter(s => completedStages.has(s.id)).length;
-              
+
               return (
                 <div key={level} className="git-platform-level-section">
-                  <div className="git-platform-level-header">
+                  <div className="git-platform-level-header" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <div className={`git-platform-level-icon-wrapper level-icon-bg-${config.color}`}>
                       <Icon className={`git-platform-level-icon level-icon-${config.color}`} />
                     </div>
-                    <h2 className="git-platform-level-title">{config.label}</h2>
-                    <span className="git-platform-level-stats">
-                      {completedInLevel}/{stageList.length} completed
-                    </span>
+
+                    {/* Group the label and warning together */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      <h2 className="git-platform-level-title" style={{ margin: 0 }}>{config.label}</h2>
+                      {!isLevelUnlocked(level, 0) && (
+                          <div style={{
+                            padding: '0.25rem 0.5rem',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            borderRadius: '4px',
+                            fontSize: '0.875rem',
+                            color: '#ef4444'
+                          }}>
+                            🔒 Complete all previous level stages to unlock
+                          </div>
+                      )}
+                    </div>
+
+                    {/* Push stats to the far right */}
+                    <span className="git-platform-level-stats" style={{ marginLeft: 'auto' }}>
+    {completedInLevel}/{stageList.length} completed
+  </span>
                   </div>
-                  
+
                   <div className="git-platform-stages-grid">
                     {stageList.map((stage) => {
                       const isUnlocked = isStageUnlocked(stage.id, level);
                       const isCompleted = completedStages.has(stage.id);
-                      
+
                       return (
                       <button
                         key={stage.id}
@@ -588,39 +623,30 @@ const GitLearningPlatform = () => {
                           ) : isUnlocked ? (
                             <ChevronRight className="git-platform-stage-card-icon git-platform-icon-pending" />
                           ) : (
-                            <span style={{ fontSize: '1.5rem' }}>🔒</span>
+                            <span style={{ fontSize: '1.1rem' }}>🔒</span>
                           )}
                         </div>
-                        <div className="git-platform-stage-card-steps">
-                          {!isUnlocked && (
-                            <div style={{ 
-                              marginBottom: '0.5rem', 
-                              padding: '0.5rem', 
-                              backgroundColor: 'rgba(239, 68, 68, 0.1)', 
-                              borderRadius: '4px',
-                              fontSize: '0.875rem',
-                              color: '#ef4444'
-                            }}>
-                              🔒 Complete all previous level stages to unlock
-                            </div>
-                          )}
-                          <div className="git-platform-stage-card-step-dots">
-                            {stage.steps.slice(0, 5).map((_, i) => (
-                              <div key={i} className="git-platform-stage-card-step-dot" />
-                            ))}
-                            {stage.steps.length > 5 && (
-                              <span className="git-platform-stage-card-step-count">+{stage.steps.length - 5}</span>
-                            )}
-                          </div>
-                          <span className="git-platform-stage-card-step-count">
+
+                          {isUnlocked ?
+                              <div className="git-platform-stage-card-steps">
+                                <div className="git-platform-stage-card-step-dots">
+                                  {stage.steps.slice(0, 5).map((_, i) => (
+                                      <div key={i} className="git-platform-stage-card-step-dot" />
+                                  ))}
+                                  {stage.steps.length > 5 && (
+                                      <span className="git-platform-stage-card-step-count">+{stage.steps.length - 5}</span>
+                                  )}
+                                </div>
+                                <span className="git-platform-stage-card-step-count">
                             {stage.steps.length} steps
-                            {stage.test && stage.test.questions && (
-                              <span style={{ marginLeft: '0.5rem', color: '#3b82f6', fontWeight: '600' }}>
-                                • {stage.test.questions.length} test questions
-                              </span>
-                            )}
+                                  {/*{stage.test && stage.test.questions && (*/}
+                                  {/*  <span style={{ marginLeft: '0.5rem', color: '#3b82f6', fontWeight: '600' }}>*/}
+                                  {/*    • {stage.test.questions.length} test questions*/}
+                                  {/*  </span>*/}
+                                  {/*)}*/}
                           </span>
-                        </div>
+                                </div>
+                           : <></>}
                       </button>
                     );
                     })}
@@ -712,7 +738,7 @@ const GitLearningPlatform = () => {
                 </div>
                 <span className="git-platform-instructions-label">Stage Test</span>
               </div>
-              
+
               <p className="git-platform-instructions-text" style={{ marginBottom: '1.5rem', color: '#cbd5e1', fontSize: '0.9375rem' }}>
                 Answer all questions correctly to complete this stage and proceed to the next one.
               </p>
@@ -720,19 +746,19 @@ const GitLearningPlatform = () => {
               {currentStageData.test.questions.map((q, qIdx) => {
                 const isCorrect = testSubmitted && testAnswers[qIdx] === q.correct;
                 const isWrong = testSubmitted && testAnswers[qIdx] !== undefined && testAnswers[qIdx] !== q.correct;
-                
+
                 return (
-                  <div key={qIdx} style={{ 
-                    marginBottom: '1.5rem', 
-                    padding: '1.25rem', 
-                    border: isCorrect ? '1px solid rgba(52, 211, 153, 0.5)' : isWrong ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid rgba(148, 163, 184, 0.3)', 
-                    borderRadius: '12px', 
+                  <div key={qIdx} style={{
+                    marginBottom: '1.5rem',
+                    padding: '1.25rem',
+                    border: isCorrect ? '1px solid rgba(52, 211, 153, 0.5)' : isWrong ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid rgba(148, 163, 184, 0.3)',
+                    borderRadius: '12px',
                     backgroundColor: isCorrect ? 'rgba(16, 185, 129, 0.15)' : isWrong ? 'rgba(239, 68, 68, 0.15)' : 'rgba(30, 41, 59, 0.6)',
                     backdropFilter: 'blur(10px)'
                   }}>
-                    <p style={{ 
-                      fontWeight: '600', 
-                      marginBottom: '1rem', 
+                    <p style={{
+                      fontWeight: '600',
+                      marginBottom: '1rem',
                       fontSize: '1rem',
                       color: isCorrect ? '#34d399' : isWrong ? '#f87171' : '#e2e8f0',
                       lineHeight: '1.5'
@@ -745,7 +771,7 @@ const GitLearningPlatform = () => {
                         const isCorrectOption = optIdx === q.correct;
                         const showAsCorrect = testSubmitted && isCorrectOption;
                         const showAsWrong = testSubmitted && isWrong && isSelected && !isCorrectOption;
-                        
+
                         return (
                         <label
                           key={optIdx}
@@ -755,15 +781,15 @@ const GitLearningPlatform = () => {
                             padding: '0.875rem 1rem',
                             cursor: testSubmitted ? 'default' : 'pointer',
                             borderRadius: '8px',
-                            backgroundColor: isSelected 
+                            backgroundColor: isSelected
                               ? (showAsCorrect ? 'rgba(16, 185, 129, 0.3)' : showAsWrong ? 'rgba(239, 68, 68, 0.3)' : 'rgba(59, 130, 246, 0.3)')
-                              : showAsCorrect 
-                              ? 'rgba(16, 185, 129, 0.2)' 
+                              : showAsCorrect
+                              ? 'rgba(16, 185, 129, 0.2)'
                               : 'rgba(30, 41, 59, 0.4)',
-                            border: isSelected 
+                            border: isSelected
                               ? (showAsCorrect ? '1px solid rgba(52, 211, 153, 0.5)' : showAsWrong ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid rgba(59, 130, 246, 0.5)')
-                              : showAsCorrect 
-                              ? '1px solid rgba(52, 211, 153, 0.3)' 
+                              : showAsCorrect
+                              ? '1px solid rgba(52, 211, 153, 0.3)'
                               : '1px solid rgba(148, 163, 184, 0.2)',
                             color: '#e2e8f0',
                             transition: 'all 0.2s ease',
@@ -793,7 +819,7 @@ const GitLearningPlatform = () => {
                               }
                             }}
                             disabled={testSubmitted}
-                            style={{ 
+                            style={{
                               marginRight: '0.75rem',
                               width: '18px',
                               height: '18px',
@@ -828,19 +854,32 @@ const GitLearningPlatform = () => {
                     const score = currentStageData.test.questions.filter((q, qIdx) => testAnswers[qIdx] === q.correct).length;
                     const total = currentStageData.test.questions.length;
                     const passed = score === total;
-                    
+
                     if (passed) {
                       setTerminalOutput(prev => [...prev, { type: 'success', text: `\n✅ Test passed! ${score}/${total} correct.` }, { type: 'success', text: '🎉 Stage completed!' }]);
+                      const newCompletedStages = new Set([...completedStages, currentStage]);
+                      setCompletedStages(newCompletedStages);
+                      setShowTest(false);
+                      returnToMenu()
                       setTimeout(() => {
-                        const newCompletedStages = new Set([...completedStages, currentStage]);
-                        setCompletedStages(newCompletedStages);
-                        setShowTest(false);
-                      }, 1500);
+                        confetti({
+                          particleCount: 125,
+                          angle: 60,
+                          spread: 100,
+                          origin: { x: 0, y: 1}
+                        });
+                        confetti({
+                          particleCount: 125,
+                          angle: 120,
+                          spread: 100,
+                          origin: { x: 1, y: 1}
+                        });
+                      }, 100);
                     } else {
                       setTerminalOutput(prev => [...prev, { type: 'error', text: `\n❌ Test failed. You got ${score}/${total} correct. Please review and try again.` }]);
                     }
                   }}
-                  className="git-platform-hint-button"
+                  className="git-platform-submit-test-button"
                   style={{ width: '100%', marginTop: '1rem' }}
                 >
                   Submit Test
@@ -880,46 +919,24 @@ const GitLearningPlatform = () => {
 
         {/* Instructions panel */}
         {!showTest && (
-          <div className="git-platform-instructions">
-            <div className="git-platform-instructions-panel">
-              <div className="git-platform-instructions-header">
-                <div className="git-platform-instructions-step-number">
-                  <span className="git-platform-instructions-step-number-text">{currentStep + 1}</span>
+            <div className="git-platform-instructions">
+              <div className="git-platform-instructions-panel">
+                <div className="git-platform-instructions-header">
+                  <div className="git-platform-instructions-step-number">
+                    <span className="git-platform-instructions-step-number-text">{currentStep + 1}</span>
+                  </div>
+                  <span className="git-platform-instructions-label">Current Task</span>
                 </div>
-                <span className="git-platform-instructions-label">Current Task</span>
-              </div>
-              
-              <p className="git-platform-instructions-text">
-                {currentStageData?.steps[currentStep]?.instruction}
-              </p>
 
-            {!showHint ? (
-              <button
-                onClick={() => setShowHint(true)}
-                className="git-platform-hint-button"
-              >
-                💡 Need help?
-              </button>
-            ) : (
-              <div className="git-platform-hints-container">
-                <div className="git-platform-hints-panel">
-                  <p className="git-platform-hints-title">Hints</p>
-                  {currentStageData?.steps[currentStep]?.hints?.map((hint, i) => (
-                    <p key={i} className="git-platform-hint-item">
-                      <span className="git-platform-hint-bullet">•</span> {hint}
-                    </p>
-                  ))}
-                </div>
-                <div className="git-platform-answer-panel">
-                  <p className="git-platform-answer-title">Answer</p>
-                  <code className="git-platform-answer-code">
-                    {currentStageData?.steps[currentStep]?.expectedCommand}
-                  </code>
-                </div>
+                <p className="git-platform-instructions-text">
+                  {currentStageData?.steps[currentStep]?.instruction}
+                </p>
+
+                <button className="git-platform-hint-button" onClick={() => setActiveTab("docs")}>
+                  💡 Need help? Refer to the documentation
+                </button>
               </div>
-            )}
-          </div>
-        </div>
+            </div>
         )}
 
         {/* Terminal / Documentation Section */}
@@ -963,8 +980,8 @@ const GitLearningPlatform = () => {
                 </div>
                 <span className="git-platform-terminal-path">~/project</span>
               </div>
-              
-              <div 
+
+              <div
                 ref={terminalRef}
                 className="git-platform-terminal"
               >
@@ -983,7 +1000,7 @@ const GitLearningPlatform = () => {
                     {line.text}
                   </div>
                 ))}
-                
+
                 <form onSubmit={handleCommandSubmit} className="git-platform-terminal-input-form">
                   <span className="git-platform-terminal-prompt">$</span>
                   <input
@@ -1033,7 +1050,7 @@ const GitLearningPlatform = () => {
                   ✕
                 </button>
               </div>
-              
+
               {/* Instructions Panel */}
               <div className="git-platform-instructions-panel git-platform-instructions-panel-emerald">
                 <h3 className="git-platform-instructions-panel-title">📝 How to Edit:</h3>
@@ -1048,7 +1065,7 @@ const GitLearningPlatform = () => {
                   <strong>Example:</strong> To combine WIP commits, change <code>pick</code> to <code>squash</code> for the commits you want to merge.
                 </p>
               </div>
-              
+
               <div className="git-platform-modal-body">
                 <textarea
                   value={rebaseTodoText}
@@ -1108,7 +1125,7 @@ const GitLearningPlatform = () => {
                   ✕
                 </button>
               </div>
-              
+
               {/* Instructions Panel */}
               <div className="git-platform-instructions-panel git-platform-instructions-panel-warning">
                 <h3 className="git-platform-instructions-panel-title git-platform-instructions-panel-title-warning">⚠️ Conflict Resolution:</h3>
@@ -1129,7 +1146,7 @@ const GitLearningPlatform = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="git-platform-modal-body">
                 <textarea
                   value={conflictEditor.resolved}
