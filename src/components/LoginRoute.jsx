@@ -24,7 +24,7 @@ function LoginRoute() {
 
   // If already logged in, redirect to home
   if (currentUser) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/gitlearning" replace />;
   }
 
   // If not logged in, show login page
