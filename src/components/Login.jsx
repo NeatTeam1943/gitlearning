@@ -25,7 +25,7 @@ const Login = () => {
       } else {
         await login(email, password);
       }
-      navigate('/Learning');
+      navigate('/');
     } catch (err) {
       setError(err.message || 'Failed to authenticate');
     } finally {
@@ -39,7 +39,7 @@ const Login = () => {
 
     try {
       await loginWithGoogle();
-      navigate('/Learning');
+      navigate('/');
     } catch (err) {
       setError(err.message || 'Failed to sign in with Google');
     } finally {

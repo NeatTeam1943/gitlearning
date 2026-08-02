@@ -24,7 +24,7 @@ function LoginRoute() {
 
   // If already logged in, redirect to home
   if (currentUser) {
-    return <Navigate to="/Learning" replace />;
+    return <Navigate to="/" replace />;
   }
 
   // If not logged in, show login page
